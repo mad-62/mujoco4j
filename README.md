@@ -23,6 +23,7 @@
 - [Public API Reference](#public-api-reference)
 - [Test Suite & Verification (129 / 129 Passing)](#test-suite--verification-129--129-passing)
 - [Project Layout](#project-layout)
+- [License](#license)
 
 ---
 
@@ -372,3 +373,10 @@ mujoco4j/
 │   └── test/java/org/mujoco4j/blackbox/     # 9 Black-box test suites (129 tests)
 └── .mujoco/                                 # (Git-ignored) Local MuJoCo 3.17.0 native distro & models
 ```
+
+---
+
+## License
+
+Licensed under the [Apache License, Version 2.0](LICENSE) — the same license used by [DeepMind MuJoCo](https://github.com/google-deepmind/mujoco/blob/main/LICENSE).
+
