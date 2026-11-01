@@ -13,7 +13,7 @@
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
 - [Usage Guide & Examples](#usage-guide--examples)
-  - [1. Basic Simulation & Contact Inspection](#1-basic-simulation--contact-inspection)
+  - [1. Interactive 3D Viewer (`MjViewer.launchPassive`)](#1-interactive-3d-viewer-mjviewerlaunchpassive)
   - [2. Zero-Copy State & Vector Access](#2-zero-copy-state--vector-access)
   - [3. Object Lookups (Bodies, Joints, Geoms, Actuators, Sensors)](#3-object-lookups-bodies-joints-geoms-actuators-sensors)
   - [4. PD / Motor Control & Custom Callbacks](#4-pd--motor-control--custom-callbacks)
@@ -141,7 +141,51 @@ Once installed locally (`.\mvnw.cmd install`), add `mujoco4j` to any Maven proje
 
 ---
 
-### 1. Basic Simulation & Contact Inspection
+### 1. Interactive 3D Viewer (`MjViewer.launchPassive`)
+
+`MjViewer` provides the direct Java equivalent of Python's `mujoco.viewer.launch_passive(model, data)`, powered by pure Java 25 FFM (`glfw3.dll`) and MuJoCo's native `mjr_render` OpenGL engine (with mouse orbit, pan, scroll zoom, `Backspace` to reset, and `ESC` to close):
+
+```java
+import org.mujoco4j.*;
+
+public class FallingCubeViewer {
+    public static void main(String[] args) throws InterruptedException {
+        String xml = """
+            <mujoco>
+                <option timestep="0.002"/>
+                <worldbody>
+                    <light pos="0 0 3"/>
+                    <geom name="floor" type="plane" size="5 5 0.1"/>
+                    <body name="cube" pos="0 0 2.0">
+                        <freejoint/>
+                        <geom type="box" size="0.1 0.1 0.1" mass="1"/>
+                    </body>
+                </worldbody>
+            </mujoco>
+            """;
+
+        try (MjModel model = MjModel.loadFromXmlString(xml);
+             MjData data = model.makeData();
+             MjViewer viewer = MjViewer.launchPassive(model, data)) {
+
+            while (viewer.isRunning()) {
+                long stepStart = System.nanoTime();
+
+                MjSim.step(model, data);
+                viewer.sync();
+
+                double elapsedSec = (System.nanoTime() - stepStart) / 1_000_000_000.0;
+                double timeUntilNextStep = model.opt().timestep() - elapsedSec;
+                if (timeUntilNextStep > 0) {
+                    Thread.sleep((long) (timeUntilNextStep * 2.5 * 1000.0));
+                }
+            }
+        }
+    }
+}
+```
+
+### 1b. Headless Simulation & Contact Inspection
 
 Both `MjModel` and `MjData` implement `AutoCloseable`. Wrapping them in `try-with-resources` guarantees that native `mj_deleteModel` and `mj_deleteData` are called deterministically when the block exits.
 

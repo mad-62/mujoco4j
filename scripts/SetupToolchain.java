@@ -2,10 +2,15 @@
 //JAVA 25+
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 /**
  * Self-bootstrapping toolchain & Layer 1 codegen script for mujoco4j.
@@ -32,6 +37,25 @@ public class SetupToolchain {
         }
         if (!Files.exists(jextractBin)) {
             throw new IllegalStateException("Missing jextract binary at: " + jextractBin);
+        }
+
+        // 0. Ensure GLFW 3.4 native library (glfw3.dll) is present in .mujoco/bin
+        Path glfwDll = mujocoDir.resolve("bin").resolve("glfw3.dll");
+        if (isWindows() && !Files.exists(glfwDll)) {
+            System.out.println("Downloading GLFW 3.4 Windows x64 binary...");
+            URI glfwUri = URI.create("https://github.com/glfw/glfw/releases/download/3.4/glfw-3.4.bin.WIN64.zip");
+            try (InputStream in = glfwUri.toURL().openStream();
+                 ZipInputStream zis = new ZipInputStream(in)) {
+                ZipEntry entry;
+                while ((entry = zis.getNextEntry()) != null) {
+                    if (entry.getName().endsWith("lib-vc2022/glfw3.dll")) {
+                        Files.createDirectories(glfwDll.getParent());
+                        Files.copy(zis, glfwDll, StandardCopyOption.REPLACE_EXISTING);
+                        System.out.println("Extracted GLFW 3.4 to: " + glfwDll);
+                        break;
+                    }
+                }
+            }
         }
 
         // 1. Create hermetic CRT shim headers (stdlib.h and math.h) for libclang on Windows
