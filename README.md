@@ -420,6 +420,13 @@ mujoco4j/
 
 ---
 
+## Acknowledgments & Transparency
+
+- **Built with AI Pair-Programming:** `mujoco4j` was architected, implemented, and verified in collaboration with **Gemini 4 Argon** (via Google DeepMind's agentic coding assistant), combining `jextract` Layer 1 codegen, a handcrafted memory-safe Layer 2 Java 25 FFM abstraction, and 129 black-box verification tests ported from DeepMind's official test suite.
+- **DeepMind MuJoCo:** Powered by [Google DeepMind MuJoCo 3.17.0](https://github.com/google-deepmind/mujoco) and [GLFW 3.4](https://www.glfw.org/).
+
+---
+
 ## License
 
 Licensed under the [Apache License, Version 2.0](LICENSE) — the same license used by [DeepMind MuJoCo](https://github.com/google-deepmind/mujoco/blob/main/LICENSE).
