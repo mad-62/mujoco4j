@@ -80,10 +80,15 @@ public final class MjViewer implements AutoCloseable {
 
     // FPS & timing
     private long lastFpsTimestampNanos = System.nanoTime();
+    private long lastRenderNanos = 0L;
     private int framesSinceLastFps = 0;
     private double measuredFps = 60.0;
     private double lastClickTimeSec = -10.0;
     private int lastClickButton = 0;
+    private int lastFbW = -1;
+    private int lastFbH = -1;
+    private boolean lastShowLeft = false;
+    private boolean lastShowRight = false;
 
     private MjViewer(MjModel model, MjData data, String title, int width, int height) {
         this.model = Objects.requireNonNull(model, "model must not be null");
@@ -106,7 +111,7 @@ public final class MjViewer implements AutoCloseable {
         }
 
         GlfwBindings.glfwMakeContextCurrent(this.window);
-        GlfwBindings.glfwSwapInterval(1);
+        GlfwBindings.glfwSwapInterval(0);
 
         this.camera = new MjvCamera();
         mujoco_h.mjv_defaultFreeCamera(model.segment(), this.camera.segment());
@@ -204,9 +209,17 @@ public final class MjViewer implements AutoCloseable {
             }
         }
 
+        // Throttle actual OpenGL rendering to ~60 FPS (16.6ms) just like Python's launch_passive,
+        // so high-frequency physics loops (e.g., 500Hz) are never slowed down by VSync or UI redraws.
+        long now = System.nanoTime();
+        if (!paused && (now - lastRenderNanos) < 16_000_000L) {
+            GlfwBindings.glfwPollEvents();
+            return;
+        }
+        lastRenderNanos = now;
+
         // Update FPS counter
         framesSinceLastFps++;
-        long now = System.nanoTime();
         double elapsedSec = (now - lastFpsTimestampNanos) / 1_000_000_000.0;
         if (elapsedSec >= 0.25) {
             measuredFps = framesSinceLastFps / elapsedSec;
@@ -475,6 +488,14 @@ public final class MjViewer implements AutoCloseable {
         int[] fb = GlfwBindings.glfwGetFramebufferSize(window);
         int fbW = Math.max(1, fb[0]);
         int fbH = Math.max(1, fb[1]);
+
+        if (fbW == lastFbW && fbH == lastFbH && showLeftUi == lastShowLeft && showRightUi == lastShowRight) {
+            return;
+        }
+        lastFbW = fbW;
+        lastFbH = fbH;
+        lastShowLeft = showLeftUi;
+        lastShowRight = showRightUi;
 
         mujoco_h.mjui_resize(ui0, context.segment());
         mujoco_h.mjui_resize(ui1, context.segment());
