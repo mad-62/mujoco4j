@@ -1,0 +1,9 @@
+target/
+.mujoco/
+.tools/
+*.log
+MUJOCO_LOG.TXT
+.idea/
+*.iml
+.vscode/
+.DS_Store
