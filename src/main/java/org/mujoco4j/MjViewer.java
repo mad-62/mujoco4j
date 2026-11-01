@@ -373,7 +373,6 @@ public final class MjViewer implements AutoCloseable {
         addDef(ui0, mujoco_h.mjITEM_CHECKINT(), "Info HUD (F2)", 1, showInfoPtr, "");
         addDef(ui0, mujoco_h.mjITEM_CHECKINT(), "Help HUD (F1)", 1, showHelpPtr, "");
         addDef(ui0, mujoco_h.mjITEM_CHECKINT(), "Live Plot (F4)", 1, showPlotPtr, "");
-        addDef(ui0, mujoco_h.mjITEM_END(), "", 0, MemorySegment.NULL, "");
 
         // Section 1: Rendering (mjvScene flags + camera/label/frame)
         addDef(ui0, mujoco_h.mjITEM_SECTION(), "Rendering", mujoco_h.mjSECT_OPEN(), MemorySegment.NULL, "");
@@ -391,7 +390,6 @@ public final class MjViewer implements AutoCloseable {
         for (int i = 0; i < rndNames.length; i++) {
             addDef(ui0, mujoco_h.mjITEM_CHECKBYTE(), rndNames[i], 1, scnFlags.asSlice(i, 1), "");
         }
-        addDef(ui0, mujoco_h.mjITEM_END(), "", 0, MemorySegment.NULL, "");
 
         // Section 2: Visualization (mjvOption flags)
         addDef(ui0, mujoco_h.mjITEM_SECTION(), "Visualization", mujoco_h.mjSECT_OPEN(), MemorySegment.NULL, "");
@@ -406,7 +404,6 @@ public final class MjViewer implements AutoCloseable {
         for (int i = 0; i < visNames.length; i++) {
             addDef(ui0, mujoco_h.mjITEM_CHECKBYTE(), visNames[i], 1, visFlags.asSlice(i, 1), "");
         }
-        addDef(ui0, mujoco_h.mjITEM_END(), "", 0, MemorySegment.NULL, "");
 
         // Section 3: Groups
         addDef(ui0, mujoco_h.mjITEM_SECTION(), "Groups", mujoco_h.mjSECT_CLOSED(), MemorySegment.NULL, "");
@@ -418,7 +415,6 @@ public final class MjViewer implements AutoCloseable {
         for (int i = 0; i < 6; i++) {
             addDef(ui0, mujoco_h.mjITEM_CHECKBYTE(), "Site Group " + i, 1, siteGroup.asSlice(i, 1), "");
         }
-        addDef(ui0, mujoco_h.mjITEM_END(), "", 0, MemorySegment.NULL, "");
     }
 
     private void buildRightUiDefinitions() {
@@ -429,7 +425,6 @@ public final class MjViewer implements AutoCloseable {
                 optSeg.asSlice(mjOption_.integrator$offset(), 4), "Euler\nRK4\nImplicit\nImplicitFast");
         MemorySegment gravSeg = mjOption_.gravity(optSeg);
         addDef(ui1, mujoco_h.mjITEM_SLIDERNUM(), "Gravity Z", 1, gravSeg.asSlice(16, 8), "-20 5");
-        addDef(ui1, mujoco_h.mjITEM_END(), "", 0, MemorySegment.NULL, "");
 
         // Section 1: Actuator Controls
         addDef(ui1, mujoco_h.mjITEM_SECTION(), "Control", mujoco_h.mjSECT_OPEN(), MemorySegment.NULL, "");
@@ -445,7 +440,6 @@ public final class MjViewer implements AutoCloseable {
                 addDef(ui1, mujoco_h.mjITEM_SLIDERNUM(), truncate(name, 35), 1, ctrlPtr.asSlice((long) i * 8, 8), "-1 1");
             }
         }
-        addDef(ui1, mujoco_h.mjITEM_END(), "", 0, MemorySegment.NULL, "");
 
         // Section 2: Joint Positions (qpos)
         addDef(ui1, mujoco_h.mjITEM_SECTION(), "Joints (qpos)", mujoco_h.mjSECT_OPEN(), MemorySegment.NULL, "");
@@ -456,19 +450,24 @@ public final class MjViewer implements AutoCloseable {
                 addDef(ui1, mujoco_h.mjITEM_SLIDERNUM(), "qpos[" + i + "]", 1, qposPtr.asSlice((long) i * 8, 8), "-3.14 3.14");
             }
         }
-        addDef(ui1, mujoco_h.mjITEM_END(), "", 0, MemorySegment.NULL, "");
     }
 
     private void addDef(MemorySegment ui, int type, String name, int state, MemorySegment pdata, String other) {
         try (Arena temp = Arena.ofConfined()) {
-            MemorySegment def = temp.allocate(mjuiDef_.layout());
-            mjuiDef_.type(def, type);
-            setCString(mjuiDef_.name(def), 40, name);
-            mjuiDef_.state(def, state);
-            mjuiDef_.pdata(def, pdata);
-            setCString(mjuiDef_.other(def), 300, other);
-            mjuiDef_.otherint(def, 0);
-            mujoco_h.mjui_add(ui, def);
+            // mjui_add expects an array of mjuiDef terminated by an entry with type == mjITEM_END
+            MemorySegment defs = temp.allocate(mjuiDef_.layout(), 2);
+            MemorySegment def0 = mjuiDef_.asSlice(defs, 0);
+            mjuiDef_.type(def0, type);
+            setCString(mjuiDef_.name(def0), 40, name);
+            mjuiDef_.state(def0, state);
+            mjuiDef_.pdata(def0, pdata);
+            setCString(mjuiDef_.other(def0), 300, other);
+            mjuiDef_.otherint(def0, 0);
+
+            MemorySegment def1 = mjuiDef_.asSlice(defs, 1);
+            mjuiDef_.type(def1, mujoco_h.mjITEM_END());
+
+            mujoco_h.mjui_add(ui, defs);
         }
     }
 
